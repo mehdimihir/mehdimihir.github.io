@@ -790,7 +790,7 @@ function createResumeWindow() {
     // Add download functionality
     $(document).on('click', '#download-resume', function() {
         // Resume PDF for download
-        window.open('your-resume.pdf', '_blank');
+        window.open('assets/Mehdi-Mihir-SWE-Resume.pdf', '_blank');
     });
 }
 
@@ -815,22 +815,7 @@ function createPapersWindow() {
                 <span class="paper-tag">Mental Health</span>
                 <span class="paper-tag">Digital Fatigue</span>
             </div>
-            <a href="papers/digital-wellness-technologies.pdf" target="_blank" class="retro-button paper-view-btn">Download PDF</a>
-        </div>
-        
-        <div class="paper-item">
-            <h3>Machine Learning Approaches to Network Intrusion Detection</h3>
-            <p class="paper-date">Spring 2024</p>
-            <p class="paper-description">
-                This paper explores various machine learning techniques for detecting network intrusions,
-                comparing the effectiveness of supervised and unsupervised learning methods on common datasets.
-            </p>
-            <div class="paper-tags">
-                <span class="paper-tag">Cybersecurity</span>
-                <span class="paper-tag">Machine Learning</span>
-                <span class="paper-tag">Network Security</span>
-            </div>
-            <a href="papers/ml-network-intrusion.pdf" target="_blank" class="retro-button paper-view-btn">Download PDF</a>
+            <a href="assets/Digital-Wellness-Technologies-Mental-Health.pdf" target="_blank" class="retro-button paper-view-btn">View Paper</a>
         </div>
         
         <div class="paper-item">
@@ -845,8 +830,24 @@ function createPapersWindow() {
                 <span class="paper-tag">Microservices</span>
                 <span class="paper-tag">DevOps</span>
             </div>
-            <a href="papers/cloud-microservices.pdf" target="_blank" class="retro-button paper-view-btn">Download PDF</a>
+            <a href="assets/Cloud-Microservice-Paper.pdf" target="_blank" class="retro-button paper-view-btn">View Paper</a>
         </div>
+
+        <!--
+        <div class="paper-item">
+            <h3>Machine Learning Approaches to Network Intrusion Detection</h3>
+            <p class="paper-date">Spring 2024</p>
+            <p class="paper-description">
+                This paper explores various machine learning techniques for detecting network intrusions,
+                comparing the effectiveness of supervised and unsupervised learning methods on common datasets.
+            </p>
+            <div class="paper-tags">
+                <span class="paper-tag">Cybersecurity</span>
+                <span class="paper-tag">Machine Learning</span>
+                <span class="paper-tag">Network Security</span>
+            </div>
+            <a href="assets/ml-network-intrusion.pdf" target="_blank" class="retro-button paper-view-btn">View Paper</a>
+        </div> -->
     `;
     
     papersWindow.find('.window-content').html(content);
