@@ -555,7 +555,7 @@ function createAboutWindow() {
         <h2>hello world!</h2>
         <p>welcome to my website portfolio. my name is Mehdi, a recent graduate from 
         Southern New Hampshire University with a Bachelor of Science in Computer, 
-        residing in Liverpool, NY.</p>
+        residing in Arlington, MA.</p>
         
         <img src="assets/profile-picture.jpg" alt="Mehdi Mihir" class="profile-pic">
         
@@ -575,6 +575,17 @@ function createExperienceWindow() {
     const expWindow = createWindowElement('experience', 'technical experience', 280, 80);
     
     const content = `
+        <div class="experience-item">
+            <h3>GlaxoSmithKline</h3>
+            <p class="exp-role">Senior Full-Stack Software Engineer</p>
+            <p class="exp-date">Jun. 2025 – Present</p>
+            <ul>
+                <li>Built Python Benchling integration replacing manual CSV uploads for scientists</li>
+                <li>Refactored C++ sequence pipeline for major speed and memory gains</li>
+                <li>Developed React/Flask QC dashboard for real-time sequencing metrics</li>
+            </ul>
+        </div>
+
         <div class="experience-item">
             <h3>NYC Department of Transportation</h3>
             <p class="exp-role">Data Science Engineering Intern | Pavement Profile Project</p>
@@ -610,15 +621,15 @@ function createExperienceWindow() {
             </ul>
         </div>
 
-        <div class="experience-item">
-            <h3>Stony Brook University</h3>
-            <p class="exp-role">Undergraduate Teaching Assistant</p>
-            <p class="exp-date">Sep. 2020 – Jun. 2022</p>
-            <ul>
-                <li>Mentored over 50 students individually and evaluated assignments</li>
-                <li>Created supplemental lecture materials with Google Colab Notebooks</li>
-            </ul>
-        </div>
+        // <div class="experience-item">
+        //     <h3>Stony Brook University</h3>
+        //     <p class="exp-role">Undergraduate Teaching Assistant</p>
+        //     <p class="exp-date">Sep. 2020 – Jun. 2022</p>
+        //     <ul>
+        //         <li>Mentored over 50 students individually and evaluated assignments</li>
+        //         <li>Created supplemental lecture materials with Google Colab Notebooks</li>
+        //     </ul>
+        // </div>
     `;
     
     expWindow.find('.window-content').html(content);
@@ -632,7 +643,7 @@ function createProjectsWindow() {
     const content = `
         <div class="project-card">
             <div class="project-title">
-                <a href="https://github.com/mehd-mihir/fitness-tracker" target="_blank">🏋🏽 Fitness Tracker Dashboard</a>
+                <a href="https://github.com/mehd-mihir/fitness-tracker" target="_blank">Fitness Tracker Dashboard</a>
             </div>
             <p>Java, JavaFX, Chart.js, Google Maps API, Firebase</p>
             <ul>
@@ -645,7 +656,7 @@ function createProjectsWindow() {
 
         <div class="project-card">
             <div class="project-title">
-                <a href="https://github.com/mehd-mihir/finance-management-app" target="_blank">💸 Personal Finance Management App</a>
+                <a href="https://github.com/mehd-mihir/finance-management-app" target="_blank">Personal Finance Management App</a>
             </div>
             <p>React Native, Node.js, AWS (DynamoDB, Lambda, S3)</p>
             <ul>
@@ -657,7 +668,7 @@ function createProjectsWindow() {
 
         <div class="project-card">
             <div class="project-title">
-                <a href="https://github.com/mehdimihir/CS-370-Deep-Q-Learning-Agent" target="_blank">🕵️ Treasure Hunt Game: Deep Q-Learning Agent</a>
+                <a href="https://github.com/mehdimihir/CS-370-Deep-Q-Learning-Agent" target="_blank">Treasure Hunt Game: Deep Q-Learning Agent</a>
             </div>
             <p>Python, TensorFlow/Keras, NumPy, Matplotlib, Jupyter Notebook</p>
             <ul>
@@ -671,7 +682,7 @@ function createProjectsWindow() {
 
         <div class="project-card">
             <div class="project-title">
-                <a href="https://github.com/mehdimihir/CS-330-Zen-Garden-OpenGL" target="_blank">⛩️ Zen Garden Visualization in OpenGL</a>
+                <a href="https://github.com/mehdimihir/CS-330-Zen-Garden-OpenGL" target="_blank">Zen Garden Visualization in OpenGL</a>
             </div>
             <p>OpenGL, GLEW, GLM, GLFW</p>
             <ul>
@@ -771,7 +782,7 @@ function createResumeWindow() {
         
         <div class="resume-preview">
             <h3>Mehdi Mihir</h3>
-            <p>(347) 247 1655 | mehdi.mihir@gmail.com | <a href="https://linkedin.com/in/mmihir" target="_blank">LinkedIn</a> | <a href="https://github.com/mehd-mihir" target="_blank">GitHub</a></p>
+            <p>(347) 247 1655 | mehdi.mihir[at]gmail[dot]com | <a href="https://linkedin.com/in/mmihir" target="_blank">LinkedIn</a> | <a href="https://github.com/mehd-mihir" target="_blank">GitHub</a></p>
             <br>
             <h4>Education</h4>
             <p>Southern New Hampshire University, BS in Computer Science (Honors)</p>
