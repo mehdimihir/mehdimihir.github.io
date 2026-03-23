@@ -1,8 +1,8 @@
-# Hi there, I'm Mehdi! 👋
+# Hi there, I'm Mehdi!
 
 I'm a passionate developer with a love for creating innovative solutions and collaborating with others in the tech community. Welcome to my GitHub profile!
 
-## 🚀 About Me
+## About Me
 - 🎓 Graduated from Southern New Hampshire University
 - 🌐 Visit my [website](https://mehdimihir.github.io/) for more information
 
