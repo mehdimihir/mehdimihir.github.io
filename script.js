@@ -563,7 +563,7 @@ function createAboutWindow() {
         <div class="contact-links">
             <p><strong>github:</strong> <a href="https://github.com/mehdimihir" target="_blank">mehdmihir</a></p>
             <p><strong>linkedin:</strong> <a href="https://linkedin.com/in/mmihir" target="_blank">mmihir</a></p>
-            <p><strong>email:</strong> <a href="mailto:mehdi.mihir@gmail.com">mehdi.mihir@gmail.com</a></p>
+            <p><strong>email:</strong> mehdi.mihir[at]gmail[dot]com</p>
         </div>
     `;
     
@@ -620,16 +620,6 @@ function createExperienceWindow() {
                 <li>Designed database architecture in AWS RDS and built RESTful APIs</li>
             </ul>
         </div>
-
-        // <div class="experience-item">
-        //     <h3>Stony Brook University</h3>
-        //     <p class="exp-role">Undergraduate Teaching Assistant</p>
-        //     <p class="exp-date">Sep. 2020 – Jun. 2022</p>
-        //     <ul>
-        //         <li>Mentored over 50 students individually and evaluated assignments</li>
-        //         <li>Created supplemental lecture materials with Google Colab Notebooks</li>
-        //     </ul>
-        // </div>
     `;
     
     expWindow.find('.window-content').html(content);
