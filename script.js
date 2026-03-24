@@ -1,859 +1,960 @@
-// Mehdi Mihir
-// Software Engineering Portfolio
-// script.js
+// Mehdi Mihir · Portfolio
+// script.js - Cosmic OS Redesign
+// Bug fix: containment: 'parent' (was 'body') prevents window drift on resize
 
-$(document).ready(function() {
-    // Variables to track windows
-    var windowPositions = {};
-    var windowSizes = {};
-    var activeWindowId = null;
-    var windowZIndexCounter = 1000;
-    
-    // Initialize closed windows tracking
-    if (!sessionStorage.getItem('closedWindows')) {
-        sessionStorage.setItem('closedWindows', JSON.stringify([]));
-    }
-    
-    // Hide all windows initially
-    $('.window').hide();
-    
-    // Create desktop icons
-    createDesktopIcons();
-    
-    // Update the clock
-    function updateClock() {
-        const now = new Date();
-        let hours = now.getHours();
-        const minutes = now.getMinutes().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        
-        hours = hours % 12;
-        hours = hours ? hours : 12; // Convert 0 to 12
-        
-        $('#clock').text(`${hours}:${minutes} ${ampm}`);
-    }
-    
-    // Update clock every minute
-    updateClock();
-    setInterval(updateClock, 60000);
-    
-    // Function to make a window active (bring to front)
-    function makeWindowActive(windowId) {
-        // Reset z-index for all windows
-        $(".window").each(function() {
-            $(this).css('z-index', 1);
-        });
-        
-        // Set active window to top z-index
-        $("#" + windowId).css('z-index', windowZIndexCounter++);
-        activeWindowId = windowId;
-        
-        // Update taskbar active state
-        $(".taskbar-button").removeClass('active');
-        $(`.taskbar-button[data-window="${windowId}"]`).addClass('active');
-        
-        // Remove minimized state if applicable
-        $("#" + windowId).removeClass('minimized');
-    }
-    
-    // Function to minimize window
-    function minimizeWindow(windowId) {
-        // Save position if not already saved
-        if (!windowPositions[windowId]) {
-            windowPositions[windowId] = {
-                top: $("#" + windowId).css("top"),
-                left: $("#" + windowId).css("left")
-            };
-        }
-        
-        // Hide the window
-        $("#" + windowId).addClass('minimized').hide();
-        
-        // Update taskbar
-        $(`.taskbar-button[data-window="${windowId}"]`).removeClass('active');
-    }
-    
-    // Function to restore a minimized window
-    function restoreWindow(windowId) {
-        // If we have saved position, restore it
-        if (windowPositions[windowId]) {
-            $("#" + windowId).css({
-                'top': windowPositions[windowId].top,
-                'left': windowPositions[windowId].left
-            });
-        }
-        
-        // Show the window
-        $("#" + windowId).removeClass('minimized').show();
-        
-        // Make it active
-        makeWindowActive(windowId);
-    }
-    
-    // Function to close window
-    function closeWindow(windowId) {
-        // Hide the window
-        $("#" + windowId).hide();
-        
-        // Remove from taskbar
-        $(`.taskbar-button[data-window="${windowId}"]`).remove();
-        
-        // Add to closed windows list
-        const closedWindows = sessionStorage.getItem('closedWindows') ? 
-            JSON.parse(sessionStorage.getItem('closedWindows')) : [];
-        
-        if (!closedWindows.includes(windowId)) {
-            closedWindows.push(windowId);
-            sessionStorage.setItem('closedWindows', JSON.stringify(closedWindows));
-        }
-    }
-    
-    // Windows are initially shown based on hash or default to about
-    initializeWindows();
-    
-    // Change window based on navigation
-    $('.sidebar a').on('click', function(e) {
-        e.preventDefault();
-        const target = $(this).attr('href').substring(1);
-        const windowId = target + '-window';
-        
-        // If the window is already visible, just bring it to front
-        if ($("#" + windowId).is(':visible') && !$("#" + windowId).hasClass('minimized')) {
-            makeWindowActive(windowId);
-        } else if ($("#" + windowId).hasClass('minimized')) {
-            // If minimized, restore it
-            restoreWindow(windowId);
-        } else {
-            // Otherwise, open it
-            openWindow(target);
-        }
-        
-        // Update URL hash without re-triggering hashchange event
-        history.replaceState(null, null, `#${target}`);
-    });
-    
-    // Window controls functionality
-    $(document).on('click', '.window-minimize', function() {
-        const windowId = $(this).closest('.window').attr('id');
-        minimizeWindow(windowId);
-    });
-    
-    // Window closing functionality
-    $(document).on('click', '.window-close', function() {
-        const windowId = $(this).closest('.window').attr('id');
-        closeWindow(windowId);
-    });
-    
-    // Handle window focus
-    $(document).on('mousedown', '.window', function() {
-        const windowId = $(this).attr('id');
-        if (!$(this).hasClass('minimized') && $(this).is(':visible')) {
-            makeWindowActive(windowId);
-        }
-    });
-    
-    // Simplified context menu
-    $(document).on('contextmenu', function(e) {
-        e.preventDefault();
-        
-        // Remove any existing context menu
-        $('.context-menu').remove();
-        
-        // Create new context menu
-        const contextMenu = $(`
-            <div class="context-menu">
-                <div class="context-menu-item" id="context-refresh">Refresh</div>
-                <div class="context-menu-separator"></div>
-                <div class="context-menu-item" id="context-tile">Tile Windows</div>
-                <div class="context-menu-separator"></div>
-                <div class="context-menu-item" id="context-properties">Properties</div>
-            </div>
-        `);
-        
-        // Position the menu
-        contextMenu.css({
-            top: e.pageY + 'px',
-            left: e.pageX + 'px'
-        });
-        
-        // Add to the body
-        $('body').append(contextMenu);
-        
-        // Handle menu item clicks
-        $('#context-refresh').on('click', function() {
-            location.reload();
-        });
-        
-        $('#context-tile').on('click', function() {
-            tileWindows();
-        });
-        
-        $('#context-properties').on('click', function() {
-            alert('Created by Mehdi Mihir 2025');
-        });
-        
-        // Close the menu when clicking elsewhere
-        $(document).on('click', function() {
-            $('.context-menu').remove();
-        });
-    });
-    
-    // Function to tile windows
-    function tileWindows() {
-        const visibleWindows = $('.window:visible').not('.minimized');
-        const count = visibleWindows.length;
-        
-        if (count > 0) {
-            const cols = Math.ceil(Math.sqrt(count));
-            const rows = Math.ceil(count / cols);
-            
-            const windowWidth = Math.floor(window.innerWidth / cols);
-            const windowHeight = Math.floor((window.innerHeight - 40) / rows); // Subtract taskbar height
-            
-            visibleWindows.each(function(index) {
-                const row = Math.floor(index / cols);
-                const col = index % cols;
-                
-                $(this).css({
-                    left: col * windowWidth + 'px',
-                    top: row * windowHeight + 'px',
-                    width: (windowWidth - 10) + 'px',
-                    height: (windowHeight - 10) + 'px'
-                });
-            });
-        }
-    }
-    
-    // Listen for hash changes
-    $(window).on('hashchange', function() {
-        initializeWindows();
-    });
-    
-    // Function to initialize windows based on hash
-    function initializeWindows() {
-        const hash = window.location.hash.substring(1) || 'about';
-        const windowId = hash + '-window';
-        
-        // Get the list of deliberately closed windows
-        const closedWindows = sessionStorage.getItem('closedWindows') ? 
-            JSON.parse(sessionStorage.getItem('closedWindows')) : [];
-        
-        // Check if this window was deliberately closed by user
-        if (closedWindows.includes(windowId)) {
-            return;
-        }
-        
-        // Clear taskbar
-        $('.taskbar-buttons').empty();
-        
-        // Hide all windows first
-        $('.window').hide();
-        
-        // Open the default window
-        openWindow(hash);
-    }
-    
-    // Function to add a window to taskbar
-    function addToTaskbar(windowId, title) {
-        // Check if this window is already in taskbar
-        if ($(`.taskbar-button[data-window="${windowId}"]`).length === 0) {
-            // Add it to taskbar
-            $('.taskbar-buttons').append(
-                `<div class="taskbar-button active" data-window="${windowId}">
-                    ${title}
-                </div>`
-            );
-        } else {
-            // Just mark it as active
-            $(`.taskbar-button[data-window="${windowId}"]`).addClass('active');
-        }
-    }
-    
-    // Function to open a window
-    function openWindow(sectionName) {
-        const windowId = sectionName + '-window';
-        const windowEl = $(`#${windowId}`);
-        
-        // If minimized, restore it
-        if (windowEl.hasClass('minimized')) {
-            restoreWindow(windowId);
-            return;
-        }
-        
-        // Define better window positions that don't overlap with the sidebar
-        const positions = {
-            'about': { left: 250, top: 50 },
-            'experience': { left: 280, top: 80 },
-            'projects': { left: 310, top: 110 },
-            'skills': { left: 340, top: 140 },
-            'resume': { left: 370, top: 170 },
-            'papers': { left: 400, top: 200 }
-        };
-        
-        // Get viewport dimensions
-        const viewportWidth = $(window).width();
-        const viewportHeight = $(window).height() - 40; // Subtract taskbar height
-        
-        // Get the position for this window, or use a default
-        const position = positions[sectionName] || { left: 250, top: 100 };
-        
-        // Ensure the window is visible on screen
-        let finalLeft = position.left;
-        let finalTop = position.top;
-        
-        // Get window dimensions or use defaults
-        const windowWidth = windowEl.width() || 400;
-        const windowHeight = windowEl.height() || 300;
-        
-        // Make sure window is within viewport
-        if (finalLeft + windowWidth > viewportWidth) {
-            finalLeft = Math.max(0, viewportWidth - windowWidth - 20);
-        }
-        
-        if (finalTop + windowHeight > viewportHeight) {
-            finalTop = Math.max(0, viewportHeight - windowHeight - 20);
-        }
-        
-        // Ensure windows use absolute positioning to not affect other elements
-        windowEl.css({
-            'position': 'absolute',
-            'left': finalLeft + 'px',
-            'top': finalTop + 'px',
-            'display': 'block' // Ensure it's visible
-        });
-        
-        // Store the position
-        windowPositions[windowId] = {
-            top: finalTop + 'px',
-            left: finalLeft + 'px'
-        };
-        
-        // Add to taskbar
-        addToTaskbar(windowId, windowEl.find('.window-title-text').text());
-        
-        // Bring to front
-        makeWindowActive(windowId);
-    }
-    
-    // Handle clicks on taskbar buttons
-    $(document).on('click', '.taskbar-button', function() {
-        const windowId = $(this).data('window');
-        
-        // If window doesn't exist, remove the button
-        if (!$('#' + windowId).length) {
-            $(this).remove();
-            return;
-        }
-        
-        // If window is visible and not minimized, minimize it
-        if ($('#' + windowId).is(':visible') && !$('#' + windowId).hasClass('minimized')) {
-            minimizeWindow(windowId);
-        } else {
-            // If minimized or hidden, restore/show it
-            restoreWindow(windowId);
-        }
-    });
-    
-    // Start button menu
-    $('.start-button').on('click', function() {
-        if ($('.start-menu').length) {
-            $('.start-menu').remove();
-        } else {
-            const startMenu = $(`
-                <div class="start-menu">
-                    <div class="start-menu-header">
-                        <div class="start-menu-title">Mehdi Mihir</div>
-                    </div>
-                    <div class="start-menu-items">
-                        <div class="start-menu-item" data-section="about">About & Contact</div>
-                        <div class="start-menu-item" data-section="experience">Experience</div>
-                        <div class="start-menu-item" data-section="projects">Projects</div>
-                        <div class="start-menu-item" data-section="skills">Skills</div>
-                        <div class="start-menu-item" data-section="resume">Resume</div>
-                        <div class="start-menu-item" data-section="papers">Papers</div>
-                        <div class="start-menu-separator"></div>
-                        <div class="start-menu-item" id="start-shutdown">Shutdown</div>
-                    </div>
-                </div>
-            `);
-            
-            $('body').append(startMenu);
-            
-            $('.start-menu-item').on('click', function() {
-                if ($(this).attr('id') === 'start-shutdown') {
-                    $('body').addClass('shutdown');
-                    setTimeout(() => {
-                        $('body').append('<div class="shutdown-screen"><div>It is now safe to turn off your computer.</div></div>');
-                        setTimeout(() => {
-                            $('.shutdown-screen').fadeOut(1000, function() {
-                                $(this).remove();
-                                $('body').removeClass('shutdown');
-                            });
-                        }, 3000);
-                    }, 500);
-                } else {
-                    const section = $(this).data('section');
-                    openWindow(section);
-                }
-                $('.start-menu').remove();
-            });
-            
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('.start-button, .start-menu').length) {
-                    $('.start-menu').remove();
-                }
-            });
-        }
-    });
-    
-    // Create desktop icons function
-    function createDesktopIcons() {
-        const iconData = [
-            { name: 'Visual Studio', icon: 'visual-studio.png' },
-            { name: 'VS Code', icon: 'vscode.png' },
-            { name: 'Jupyter Notebook', icon: 'jupyter.png' },
-            { name: 'Docker', icon: 'docker.png' },
-            { name: 'AWS', icon: 'aws.png' },
-            { name: 'GitHub', icon: 'github.png' },
-            { name: 'Jira', icon: 'jira.png' }
-        ];
-        
-        // Create desktop icons container if it doesn't exist
-        if ($('.desktop-icons').length === 0) {
-            $('body').append('<div class="desktop-icons"></div>');
-        }
-        
-        // Add each icon to the container
-        iconData.forEach((icon, index) => {
-            $('.desktop-icons').append(`
-                <div class="desktop-icon" style="top: ${50 + index * 100}px;">
-                    <img src="icons/${icon.icon}" alt="${icon.name}">
-                    <div class="icon-text">${icon.name}</div>
-                </div>
-            `);
-        });
-        
-        // Style desktop icons container
-        $('.desktop-icons').css({
-            'position': 'fixed',
-            'right': '20px',
-            'top': '0',
-            'z-index': '1'
-        });
-        
-        // Style individual icons
-        $('.desktop-icon').css({
-            'display': 'flex',
-            'flex-direction': 'column',
-            'align-items': 'center',
-            'position': 'absolute',
-            'right': '0',
-            'width': '80px',
-            'text-align': 'center',
-            'cursor': 'pointer'
-        });
-        
-        // Style icon images
-        $('.desktop-icon img').css({
-            'width': '48px',
-            'height': '48px',
-            'margin-bottom': '5px'
-        });
-        
-        // Style icon text
-        $('.desktop-icon .icon-text').css({
-            'color': 'white',
-            'text-shadow': '1px 1px 2px black',
-            'font-size': '12px',
-            'word-wrap': 'break-word',
-            'max-width': '80px'
-        });
-        
-        // Handle icon clicks (for demonstration)
-        $('.desktop-icon').on('click', function() {
-            const iconName = $(this).find('.icon-text').text();
-            alert(`I also use ${iconName} when developing!`);
-        });
-    }
-    
-    // Cursor trail effect
-    $(document).on('mousemove', function(e) {
-        createCursorTrail(e.pageX, e.pageY);
-    });
-    
-    function createCursorTrail(x, y) {
-        const trail = $('<div class="cursor-trail"></div>');
-        trail.css({
-            left: x + 'px',
-            top: y + 'px'
-        });
-        
-        $('body').append(trail);
-        
-        // Remove the trail element after animation completes
-        setTimeout(() => {
-            trail.remove();
-        }, 1000);
-    }
-    
-    // Create content for all sections
-    createAboutWindow();
-    createExperienceWindow();
-    createProjectsWindow();
-    createSkillsWindow();
-    createResumeWindow();
-    createPapersWindow();
-    
-    // Initially show only about window and clear taskbar
-    $('.window').hide();
-    $('.taskbar-buttons').empty(); // Clear taskbar initially
-    
-    // Open about window by default
-    openWindow('about');
-});
+// ── Ambient Particle System ──────────────────────────────────
+(function initParticles() {
+  const canvas  = document.getElementById('ambient-canvas');
+  if (!canvas) return;
+  const ctx     = canvas.getContext('2d');
+  let W, H, particles;
+  const COUNT   = 65;
+  // Ocean bioluminescence: cyan, teal, aqua, deep blue
+  const PALETTE = [
+    [0,   229, 255],   // bright bio-cyan
+    [6,   182, 212],   // teal
+    [56,  189, 248],   // sky blue
+    [99,  102, 241],   // indigo depth
+    [165, 243, 252],   // pale aqua
+    [14,  116, 144],   // deep teal
+  ];
 
-// Helper function to create window elements
-function createWindowElement(id, title, left, top) {
-    const windowElement = $(`
-        <div id="${id}-window" class="window" style="position: absolute; left: ${left}px; top: ${top}px;">
-            <div class="window-title">
-                <div class="window-title-text">${title}</div>
-                <div class="window-controls">
-                    <div class="window-button window-minimize">_</div>
-                    <div class="window-button window-close">✕</div>
-                </div>
-            </div>
-            <div class="window-content"></div>
-        </div>
+  function resize() {
+    W = canvas.width  = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+  }
+
+  function rand(min, max) { return Math.random() * (max - min) + min; }
+
+  function mkParticle() {
+    const [r, g, b] = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+    return {
+      x:    rand(0, W),
+      y:    rand(0, H),
+      r:    rand(1.5, 5),
+      alpha:rand(0.03, 0.14),
+      vx:   rand(-0.12, 0.12),
+      vy:   rand(-0.18, -0.04),
+      pulse:rand(0, Math.PI * 2),
+      pSpeed:rand(0.003, 0.009),
+      r_base:0,
+      g,
+      b,
+      red: r,
+    };
+  }
+
+  function init() {
+    resize();
+    particles = Array.from({ length: COUNT }, mkParticle);
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, W, H);
+
+    for (const p of particles) {
+      p.pulse += p.pSpeed;
+      const glow  = 1 + 0.4 * Math.sin(p.pulse);
+      const r     = p.r * glow;
+      const alpha = p.alpha * (0.8 + 0.2 * Math.sin(p.pulse));
+
+      // Soft radial glow
+      const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4);
+      grad.addColorStop(0,   `rgba(${p.red},${p.g},${p.b},${alpha})`);
+      grad.addColorStop(0.5, `rgba(${p.red},${p.g},${p.b},${alpha * 0.3})`);
+      grad.addColorStop(1,   `rgba(${p.red},${p.g},${p.b},0)`);
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r * 4, 0, Math.PI * 2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Move
+      p.x += p.vx;
+      p.y += p.vy;
+
+      // Wrap
+      if (p.y < -20) { p.y = H + 10; p.x = rand(0, W); }
+      if (p.x < -20) p.x = W + 10;
+      if (p.x > W + 20) p.x = -10;
+    }
+
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  init();
+  draw();
+})();
+
+
+// ── Main Portfolio App ────────────────────────────────────────
+$(document).ready(function () {
+
+  // ── State ──
+  var windowPositions     = {};
+  var preTileSizes        = {};
+  var activeWindowId      = null;
+  var windowZIndexCounter = 1000;
+
+  function restoreTileSize(windowId) {
+    if (preTileSizes[windowId]) {
+      const s = preTileSizes[windowId];
+      $('#' + windowId).css({ width: s.width, height: s.height });
+      delete preTileSizes[windowId];
+    }
+  }
+
+  if (!sessionStorage.getItem('closedWindows')) {
+    sessionStorage.setItem('closedWindows', JSON.stringify([]));
+  }
+
+  // ── Clock ──
+  function updateClock() {
+    const now     = new Date();
+    let hours     = now.getHours();
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    const ampm    = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    $('#clock').text(`${hours}:${minutes} ${ampm}`);
+  }
+  updateClock();
+  setInterval(updateClock, 30000);
+
+  // ── Window management ──
+  function makeWindowActive(windowId) {
+    $('.window').css('z-index', 10).removeClass('window-focused');
+    $('#' + windowId).css('z-index', windowZIndexCounter++).addClass('window-focused');
+    activeWindowId = windowId;
+    $('.taskbar-button').removeClass('active');
+    $(`.taskbar-button[data-window="${windowId}"]`).addClass('active');
+    $('#' + windowId).removeClass('minimized');
+    updateSidebarActive(windowId);
+  }
+
+  function minimizeWindow(windowId) {
+    if (!windowPositions[windowId]) {
+      windowPositions[windowId] = {
+        top:  $('#' + windowId).css('top'),
+        left: $('#' + windowId).css('left'),
+      };
+    }
+    $('#' + windowId).addClass('minimized').hide();
+    $(`.taskbar-button[data-window="${windowId}"]`).removeClass('active');
+  }
+
+  function restoreWindow(windowId) {
+    if (windowPositions[windowId]) {
+      $('#' + windowId).css({
+        top:  windowPositions[windowId].top,
+        left: windowPositions[windowId].left,
+      });
+    }
+    restoreTileSize(windowId);
+    $('#' + windowId).removeClass('minimized').show();
+    makeWindowActive(windowId);
+  }
+
+  function closeWindow(windowId) {
+    $('#' + windowId).hide();
+    $(`.taskbar-button[data-window="${windowId}"]`).remove();
+    const closed = JSON.parse(sessionStorage.getItem('closedWindows') || '[]');
+    if (!closed.includes(windowId)) {
+      closed.push(windowId);
+      sessionStorage.setItem('closedWindows', JSON.stringify(closed));
+    }
+  }
+
+  function updateSidebarActive(windowId) {
+    const section = windowId.replace('-window', '');
+    $('.sidebar a').removeClass('nav-active');
+    $(`.sidebar a[href="#${section}"]`).addClass('nav-active');
+  }
+
+  // ── Sidebar nav ──
+  $('.sidebar a').on('click', function (e) {
+    e.preventDefault();
+    const target   = $(this).attr('href').substring(1);
+    const windowId = target + '-window';
+    if ($('#' + windowId).is(':visible') && !$('#' + windowId).hasClass('minimized')) {
+      makeWindowActive(windowId);
+    } else if ($('#' + windowId).hasClass('minimized')) {
+      restoreWindow(windowId);
+    } else {
+      openWindow(target);
+    }
+    history.replaceState(null, null, `#${target}`);
+  });
+
+  // ── Window controls ──
+  $(document).on('click', '.window-minimize', function () {
+    minimizeWindow($(this).closest('.window').attr('id'));
+  });
+
+  $(document).on('click', '.window-close', function () {
+    closeWindow($(this).closest('.window').attr('id'));
+  });
+
+  $(document).on('mousedown', '.window', function () {
+    const id = $(this).attr('id');
+    if (!$(this).hasClass('minimized') && $(this).is(':visible')) {
+      makeWindowActive(id);
+    }
+  });
+
+  // ── Context menu ──
+  $(document).on('contextmenu', function (e) {
+    e.preventDefault();
+    $('.context-menu').remove();
+    const menu = $(`
+      <div class="context-menu" style="top:${e.clientY}px;left:${e.clientX}px">
+        <div class="context-menu-item" id="ctx-refresh">⟳ &nbsp;Refresh</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" id="ctx-tile">⊞ &nbsp;Tile Windows</div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" id="ctx-about">✦ &nbsp;Properties</div>
+      </div>
     `);
-    
-    // Make the window draggable immediately after creation
-    windowElement.draggable({
-        handle: '.window-title',
-        containment: 'body',
-        start: function() {
-            // Bring the window to the front when dragging
-            $('.window').css('z-index', 1);
-            $(this).css('z-index', 2);
-            // Add dragging class for cursor change
-            $(this).addClass('dragging-window');
-        },
-        stop: function() {
-            // Remove dragging class when done
-            $(this).removeClass('dragging-window');
-        }
+    $('body').append(menu);
+    $('#ctx-refresh').on('click', () => location.reload());
+    $('#ctx-tile').on('click',    () => { tileWindows(); $('.context-menu').remove(); });
+    $('#ctx-about').on('click',   () => { alert('Portfolio by Mehdi Mihir · 2025'); $('.context-menu').remove(); });
+    $(document).one('click', () => $('.context-menu').remove());
+  });
+
+  // ── Tile windows ──
+  function tileWindows() {
+    const wins = $('.window:visible').not('.minimized');
+    const n    = wins.length;
+    if (!n) return;
+    const cols = Math.ceil(Math.sqrt(n));
+    const rows = Math.ceil(n / cols);
+    const dw   = Math.floor($('#desktop').width() / cols);
+    const dh   = Math.floor($('#desktop').height() / rows);
+    wins.each(function (i) {
+      const id = $(this).attr('id');
+      if (!preTileSizes[id]) {
+        preTileSizes[id] = {
+          width:  $(this)[0].style.width  || '',
+          height: $(this)[0].style.height || '',
+        };
+      }
+      $(this).css({
+        left:   (i % cols) * dw + 'px',
+        top:    Math.floor(i / cols) * dh + 'px',
+        width:  (dw - 8) + 'px',
+        height: (dh - 8) + 'px',
+      });
     });
-    
-    return windowElement;
+  }
+
+
+
+  // ── Hash change ──
+  $(window).on('hashchange', initializeWindows);
+
+  function initializeWindows() {
+    const hash     = window.location.hash.substring(1) || 'about';
+    const windowId = hash + '-window';
+    const closed   = JSON.parse(sessionStorage.getItem('closedWindows') || '[]');
+    if (closed.includes(windowId)) return;
+    $('.taskbar-buttons').empty();
+    $('.window').hide();
+    openWindow(hash);
+  }
+
+  // ── Taskbar ──
+  function addToTaskbar(windowId, title) {
+    if (!$(`.taskbar-button[data-window="${windowId}"]`).length) {
+      $('.taskbar-buttons').append(
+        `<div class="taskbar-button active" data-window="${windowId}">${title}</div>`
+      );
+    } else {
+      $(`.taskbar-button[data-window="${windowId}"]`).addClass('active');
+    }
+  }
+
+  $(document).on('click', '.taskbar-button', function () {
+    const id = $(this).data('window');
+    if (!$('#' + id).length) { $(this).remove(); return; }
+    if ($('#' + id).is(':visible') && !$('#' + id).hasClass('minimized')) {
+      minimizeWindow(id);
+    } else {
+      restoreWindow(id);
+    }
+  });
+
+  // ── Open window ──
+  function openWindow(sectionName) {
+    const windowId = sectionName + '-window';
+    const el       = $('#' + windowId);
+
+    if (el.hasClass('minimized')) { restoreWindow(windowId); return; }
+
+    // Offset left enough to clear the floating sidebar (~210px wide incl margin)
+    const defaults = {
+      about:      { left: 215, top: 30  },
+      experience: { left: 235, top: 50  },
+      projects:   { left: 255, top: 70  },
+      skills:     { left: 275, top: 90  },
+      resume:     { left: 295, top: 110 },
+      papers:     { left: 315, top: 130 },
+    };
+
+    const dw = $('#desktop').width();
+    const dh = $('#desktop').height();
+    const pos = defaults[sectionName] || { left: 80, top: 60 };
+    let L = pos.left, T = pos.top;
+    const elW = el.outerWidth()  || 420;
+    const elH = el.outerHeight() || 320;
+
+    if (L + elW > dw) L = Math.max(215, dw - elW - 10);
+    if (T + elH > dh) T = Math.max(0,   dh - elH);
+
+    el.css({ position: 'absolute', left: L + 'px', top: T + 'px' });
+    restoreTileSize(windowId);
+    el.addClass('window-entering');
+    el.show();
+    setTimeout(() => el.removeClass('window-entering'), 250);
+
+    windowPositions[windowId] = { top: T + 'px', left: L + 'px' };
+    addToTaskbar(windowId, el.find('.window-title-text').text());
+    makeWindowActive(windowId);
+  }
+
+  // ── Start button / menu ──
+  $('.start-button').on('click', function (e) {
+    e.stopPropagation();
+    if ($('.start-menu').length) { $('.start-menu').remove(); return; }
+
+    // Get current time for the menu header
+    const now    = new Date();
+    let   hh     = now.getHours();
+    const mm     = now.getMinutes().toString().padStart(2, '0');
+    const ampm   = hh >= 12 ? 'pm' : 'am';
+    hh = (hh % 12) || 12;
+    const timeStr = `${hh}:${mm} ${ampm}`;
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+    const menu = $(`
+      <div class="start-menu">
+        <div class="start-menu-header">
+          <div class="start-menu-name">Mehdi Mihir</div>
+          <div class="start-menu-meta">
+            <span class="start-menu-time">${timeStr}</span>
+            <span class="start-menu-date">${dateStr}</span>
+          </div>
+        </div>
+        <div class="start-menu-items">
+          <div class="start-menu-label">workspace</div>
+          <div class="start-menu-item sm-icon-about"   data-section="about">about</div>
+          <div class="start-menu-item sm-icon-exp"     data-section="experience">experience</div>
+          <div class="start-menu-item sm-icon-proj"    data-section="projects">projects</div>
+          <div class="start-menu-separator"></div>
+          <div class="start-menu-label">system</div>
+          <div class="start-menu-item sm-icon-tile"    id="start-tile">tile windows</div>
+          <div class="start-menu-item sm-icon-shut danger" id="start-shutdown">restart</div>
+        </div>
+      </div>
+    `);
+    $('body').append(menu);
+
+    menu.find('[data-section]').on('click', function () {
+      openWindow($(this).data('section'));
+      menu.remove();
+    });
+
+    menu.find('#start-tile').on('click', function () {
+      tileWindows();
+      menu.remove();
+    });
+
+    menu.find('#start-shutdown').on('click', function () {
+      menu.remove();
+      shutdownSequence();
+    });
+
+    $(document).one('click', function (e) {
+      if (!$(e.target).closest('.start-button, .start-menu').length) {
+        menu.remove();
+      }
+    });
+  });
+
+  // ── Oceanic bubble shutdown sequence ──
+  function shutdownSequence() {
+    const canvas = document.createElement('canvas');
+    canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;z-index:99998;pointer-events:all;';
+    document.body.appendChild(canvas);
+    const ctx = canvas.getContext('2d');
+    canvas.width  = window.innerWidth;
+    canvas.height = window.innerHeight;
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const msg = document.createElement('div');
+    msg.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;pointer-events:none;opacity:0;transition:opacity 1.4s ease;';
+    msg.innerHTML = '<span style="font-family:Courier Prime,monospace;font-size:13px;letter-spacing:0.18em;text-transform:lowercase;color:rgba(125,211,252,0.75);text-shadow:0 0 20px rgba(0,229,255,0.5);">surfacing...</span>';
+    document.body.appendChild(msg);
+
+    const PALETTE = [[0,229,255],[6,182,212],[56,189,248],[99,102,241],[165,243,252]];
+
+    // Fixed-size circular pool - never grows, never crashes
+    const MAX_BUBBLES = 120;
+    const pool = [];
+    let   poolHead = 0; // next slot to overwrite
+
+    function initPool() {
+      for (let i = 0; i < MAX_BUBBLES; i++) pool.push(null);
+    }
+
+    function spawnBubble(x, vy, r, maxA, delayMs) {
+      const [rc,gc,bc] = PALETTE[Math.floor(Math.random() * PALETTE.length)];
+      const b = {
+        x:   x != null ? x : Math.random() * W,
+        y:   H + Math.random() * 60,
+        r:   r   || (3 + Math.random() * 18),
+        vx:  (Math.random() - 0.5) * 0.8,
+        vy:  vy  || -(0.7 + Math.random() * 1.8),
+        wobble: Math.random() * Math.PI * 2,
+        wSpeed: 0.02 + Math.random() * 0.03,
+        alpha: 0,
+        maxA: maxA || (0.2 + Math.random() * 0.45),
+        rc, gc, bc,
+        born: performance.now() + (delayMs || 0),
+        popped: false, popT: 0,
+      };
+      pool[poolHead % MAX_BUBBLES] = b;
+      poolHead++;
+      return b;
+    }
+
+    function drawBubble(b) {
+      if (!b) return;
+      const now = performance.now();
+      if (now < b.born) return;
+
+      // Move
+      b.wobble += b.wSpeed;
+      b.x += b.vx + Math.sin(b.wobble) * 0.35;
+      b.y += b.vy;
+
+      // Pop at top
+      if (!b.popped && b.y < H * 0.08) b.popped = true;
+
+      // Alpha
+      if (!b.popped) {
+        b.alpha = Math.min(b.maxA, b.alpha + 0.015);
+      } else {
+        b.popT  += 0.055;
+        b.alpha  = Math.max(0, b.maxA * (1 - b.popT));
+      }
+
+      // Recycle completely faded or far off-screen bubbles
+      if (b.alpha <= 0 || b.y < -60) { pool[pool.indexOf(b)] = null; return; }
+
+      const {x, y, r, rc, gc, bc, alpha} = b;
+
+      // Glow halo
+      const glow = ctx.createRadialGradient(x, y, 0, x, y, r * 2.8);
+      glow.addColorStop(0, `rgba(${rc},${gc},${bc},${alpha * 0.30})`);
+      glow.addColorStop(1, `rgba(${rc},${gc},${bc},0)`);
+      ctx.beginPath(); ctx.arc(x, y, r * 2.8, 0, Math.PI * 2);
+      ctx.fillStyle = glow; ctx.fill();
+
+      // Shell
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${rc},${gc},${bc},${alpha * 1.2})`;
+      ctx.lineWidth = 1.1; ctx.stroke();
+
+      // Highlight
+      ctx.beginPath(); ctx.arc(x - r*0.28, y - r*0.30, r*0.18, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(255,255,255,${alpha * 0.5})`; ctx.fill();
+
+      // Pop ring
+      if (b.popped && b.popT < 1) {
+        ctx.beginPath(); ctx.arc(x, y, r * (1 + b.popT * 2), 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(${rc},${gc},${bc},${alpha * 0.6})`;
+        ctx.lineWidth = 0.7; ctx.stroke();
+      }
+    }
+
+    initPool();
+    // Seed first wave with staggered delays
+    for (let i = 0; i < 50; i++) spawnBubble(null, null, null, null, i * 40);
+
+    let phase      = 0;   // 0=descent  1=burst  2=surface  3=done
+    let startT     = null;
+    let phaseT     = null;
+    let msgShown   = false;
+    let reloadFired = false;
+    const DESCENT_D = 4200;
+    const BURST_D   = 900;
+    const SURFACE_D = 1000;
+
+    function tick(ts) {
+      if (reloadFired) return;
+      if (!startT) { startT = ts; phaseT = ts; }
+      const elapsed = ts - startT;
+      const phaseEl = ts - phaseT;
+
+      // Always schedule next frame first - never miss a beat
+      requestAnimationFrame(tick);
+
+      // ── Background fill ──
+      if (phase <= 1) {
+        const darkT = Math.min(1, elapsed / DESCENT_D);
+        ctx.fillStyle = `rgba(1,8,16,${0.14 + darkT * 0.79})`;
+      } else {
+        ctx.fillStyle = 'rgba(1,8,16,0.22)';
+      }
+      ctx.fillRect(0, 0, W, H);
+
+      // ── Light shaft (phase 0 only, fades at 60%) ──
+      if (phase === 0) {
+        const t = Math.min(1, elapsed / DESCENT_D);
+        if (t < 0.60) {
+          const sA = (0.60 - t) * 0.32;
+          const shaft = ctx.createRadialGradient(W*0.5, 0, 0, W*0.5, 0, H*0.55);
+          shaft.addColorStop(0,   `rgba(14,165,233,${sA})`);
+          shaft.addColorStop(0.5, `rgba(6,182,212,${sA*0.3})`);
+          shaft.addColorStop(1,   'rgba(0,0,0,0)');
+          ctx.fillStyle = shaft; ctx.fillRect(0, 0, W, H);
+        }
+        // Trickle-spawn - only if pool has room and we are before 65%
+        if (t < 0.65 && Math.random() < 0.22) spawnBubble();
+      }
+
+      // ── Draw all live bubbles ──
+      for (let i = 0; i < MAX_BUBBLES; i++) drawBubble(pool[i]);
+
+      // ── Message ──
+      if (!msgShown && elapsed > DESCENT_D * 0.42) {
+        msgShown = true;
+        msg.style.opacity = '1';
+      }
+
+      // ── Phase transitions ──
+      if (phase === 0 && elapsed >= DESCENT_D) {
+        phase = 1; phaseT = ts;
+        // Burst: 40 fast large bubbles, spread across pool slots
+        for (let i = 0; i < 40; i++) {
+          spawnBubble(
+            Math.random() * W,
+            -(2.2 + Math.random() * 3.8),
+            6 + Math.random() * 22,
+            0.55 + Math.random() * 0.4,
+            i * 20
+          );
+        }
+      }
+
+      if (phase === 1 && phaseEl >= BURST_D) {
+        phase = 2; phaseT = ts;
+      }
+
+      if (phase === 2) {
+        const t    = Math.min(1, phaseEl / SURFACE_D);
+        const ease = t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t;
+        const lA   = ease * 0.97;
+        const lg   = ctx.createRadialGradient(W*0.5, 0, 0, W*0.5, H*0.4, H*1.1);
+        lg.addColorStop(0,    `rgba(200,245,255,${lA})`);
+        lg.addColorStop(0.25, `rgba(125,211,252,${lA*0.75})`);
+        lg.addColorStop(0.65, `rgba(14,165,233,${lA*0.3})`);
+        lg.addColorStop(1,    'rgba(1,8,16,0)');
+        ctx.fillStyle = lg; ctx.fillRect(0, 0, W, H);
+
+        if (t >= 1) {
+          reloadFired = true;
+          ctx.fillStyle = 'rgba(215,250,255,1)';
+          ctx.fillRect(0, 0, W, H);
+          setTimeout(() => {
+            sessionStorage.removeItem('closedWindows');
+            location.reload();
+          }, 80);
+        }
+      }
+    }
+
+    requestAnimationFrame(tick);
+  }
+
+  // ── Desktop icons ──
+  function createDesktopIcons() {
+    const icons = [
+      { name: 'Visual Studio', icon: 'visual-studio.png' },
+      { name: 'VS Code',       icon: 'vscode.png'        },
+      { name: 'Jupyter',       icon: 'jupyter.png'       },
+      { name: 'Docker',        icon: 'docker.png'        },
+      { name: 'AWS',           icon: 'aws.png'           },
+      { name: 'GitHub',        icon: 'github.png'        },
+      { name: 'Jira',          icon: 'jira.png'          },
+    ];
+
+    if (!$('.desktop-icons').length) $('body').append('<div class="desktop-icons"></div>');
+
+    icons.forEach((icon, i) => {
+      $('.desktop-icons').append(`
+        <div class="desktop-icon" style="position:absolute;top:${16 + i * 88}px">
+          <img src="icons/${icon.icon}" alt="${icon.name}">
+          <div class="icon-text">${icon.name}</div>
+        </div>
+      `);
+    });
+
+    $(document).on('click', '.desktop-icon', function () {
+      const name = $(this).find('.icon-text').text();
+      alert(`I also use ${name} when developing!`);
+    });
+  }
+
+  // ── Cursor trail ──
+  let trailThrottle = 0;
+  $(document).on('mousemove', function (e) {
+    const now = Date.now();
+    if (now - trailThrottle < 35) return;
+    trailThrottle = now;
+    const dot = $('<div class="cursor-trail"></div>').css({ left: e.clientX, top: e.clientY });
+    $('body').append(dot);
+    setTimeout(() => dot.remove(), 800);
+  });
+
+  // ── Download resume ──
+  $(document).on('click', '#download-resume', function () {
+    window.open('assets/Mehdi-Mihir-SWE-Resume.pdf', '_blank');
+  });
+
+  // ── Build all windows ──
+  createAboutWindow();
+  createExperienceWindow();
+  createProjectsWindow();
+  createSkillsWindow();
+  createResumeWindow();
+  createPapersWindow();
+  createDesktopIcons();
+
+  // Hide all, then open default
+  $('.window').hide();
+  $('.taskbar-buttons').empty();
+  initializeWindows();
+
+}); // end ready
+
+
+// ── Helper: create a draggable window element ─────────────────
+// BUG FIX: containment: 'parent' keeps windows inside #desktop
+// regardless of browser window snap / resize events.
+function createWindowElement(id, title, left, top) {
+  const el = $(`
+    <div id="${id}-window" class="window" style="position:absolute;left:${left}px;top:${top}px;">
+      <div class="window-title">
+        <div class="window-title-text">${title}</div>
+        <div class="window-controls">
+          <div class="window-button window-minimize" title="Minimize">−</div>
+          <div class="window-button window-close"    title="Close">×</div>
+        </div>
+      </div>
+      <div class="window-content"></div>
+    </div>
+  `);
+
+  el.draggable({
+    handle:   '.window-title',
+    scroll:   false,
+    drag: function(event, ui) {
+      const desktop       = $('#desktop');
+      const dW            = desktop.outerWidth();
+      const dH            = desktop.outerHeight();
+      const elW           = $(this).outerWidth();
+      const elH           = $(this).outerHeight();
+      const SIDEBAR_RIGHT = 210;
+      const SIDEBAR_BOT   = 270; // approx bottom of nav card
+
+      // A window may enter the left zone ONLY if it fits entirely below the nav.
+      // i.e. its top edge is at or below the sidebar's bottom edge.
+      // Any vertical overlap with the sidebar → enforce the right boundary.
+      const windowTop    = ui.position.top;
+      const fitsBelow    = windowTop >= SIDEBAR_BOT;
+      const leftMin      = fitsBelow ? 0 : SIDEBAR_RIGHT;
+
+      // Hard clamp: window must stay fully within the desktop in all directions
+      ui.position.left = Math.max(leftMin, Math.min(ui.position.left, dW - elW));
+      ui.position.top  = Math.max(0,       Math.min(ui.position.top,  dH - elH));
+    },
+    start: function () {
+      $('.window').css('z-index', 10).removeClass('window-focused');
+      $(this).css('z-index', 2000).addClass('window-focused dragging-window');
+    },
+    stop: function () {
+      $(this).removeClass('dragging-window');
+    },
+  });
+
+  return el;
 }
 
-// Functions to create each window
+
+// ── Window content factories ──────────────────────────────────
+
 function createAboutWindow() {
-    const aboutWindow = createWindowElement('about', 'about & contact', 250, 50);
-    
-    const content = `
-        <h2>hello world!</h2>
-        <p>welcome to my website portfolio. my name is Mehdi, a recent graduate from 
-        Southern New Hampshire University with a Bachelor of Science in Computer, 
-        residing in Arlington, MA.</p>
-        
-        <img src="assets/profile-picture.jpg" alt="Mehdi Mihir" class="profile-pic">
-        
-        <p>please feel free to contact me for any questions/inquiries!</p>
-        <div class="contact-links">
-            <p><strong>github:</strong> <a href="https://github.com/mehdimihir" target="_blank">mehdmihir</a></p>
-            <p><strong>linkedin:</strong> <a href="https://linkedin.com/in/mmihir" target="_blank">mmihir</a></p>
-            <p><strong>email:</strong> mehdi.mihir[at]gmail[dot]com</p>
-        </div>
-    `;
-    
-    aboutWindow.find('.window-content').html(content);
-    $('main').append(aboutWindow);
+  const w = createWindowElement('about', 'about', 40, 30);
+  w.find('.window-content').html(`
+    <h2>hello, world.</h2>
+    <p>i'm <strong>Mehdi Mihir</strong> - a full-stack software engineer
+       based in the Boston area, currently at
+       <strong>GlaxoSmithKline</strong> building tools that accelerate
+       scientific research.</p>
+
+    <img src="assets/profile-picture.jpg" alt="Mehdi Mihir" class="profile-pic">
+
+    <p>SNHU Computer Science graduate (Honors, 2025). Passionate about
+       clean systems, thoughtful UI, and turning complex data into
+       something people can actually use.</p>
+
+    <p>feel free to reach out!</p>
+
+    <div class="contact-links">
+      <p><strong>github</strong> &nbsp;→&nbsp;
+         <a href="https://github.com/mehdimihir" target="_blank">mehdimihir</a></p>
+      <p><strong>linkedin</strong> &nbsp;→&nbsp;
+         <a href="https://linkedin.com/in/mmihir" target="_blank">mmihir</a></p>
+      <p><strong>email</strong> &nbsp;→&nbsp; mehdi.mihir [at] gmail [dot] com</p>
+    </div>
+  `);
+  $('main').append(w);
 }
+
 
 function createExperienceWindow() {
-    const expWindow = createWindowElement('experience', 'technical experience', 280, 80);
-    
-    const content = `
-        <div class="experience-item">
-            <h3>GlaxoSmithKline</h3>
-            <p class="exp-role">Senior Full-Stack Software Engineer</p>
-            <p class="exp-date">Jun. 2025 – Present</p>
-            <ul>
-                <li>Built Python Benchling integration replacing manual CSV uploads for scientists</li>
-                <li>Refactored C++ sequence pipeline for major speed and memory gains</li>
-                <li>Developed React/Flask QC dashboard for real-time sequencing metrics</li>
-            </ul>
-        </div>
+  const w = createWindowElement('experience', 'experience', 70, 55);
+  w.find('.window-content').html(`
+    <div class="experience-item">
+      <h3>GlaxoSmithKline (GSK)</h3>
+      <p class="exp-role">Senior Full-Stack Software Engineer</p>
+      <p class="exp-date">Jun. 2025 – Present</p>
+      <ul>
+        <li>Built Python–Benchling integration replacing manual CSV uploads for lab scientists</li>
+        <li>Refactored legacy C++ sequence pipeline - significant speed and memory improvements</li>
+        <li>Developed React / Flask QC dashboard for real-time DNA sequencing metrics</li>
+        <li>Collaborated with cross-functional teams in a pharma-grade regulated environment</li>
+      </ul>
+    </div>
 
-        <div class="experience-item">
-            <h3>NYC Department of Transportation</h3>
-            <p class="exp-role">Data Science Engineering Intern | Pavement Profile Project</p>
-            <p class="exp-date">Jun. 2023 – Aug. 2023</p>
-            <ul>
-                <li>Worked with city planners and civil engineers to digitize roadway deterioration modeling using Geographic Information Systems (GIS)</li>
-                <li>Streamlined metadata organization and conducted advanced dataset querying</li>
-                <li>Engineered dynamic maps and interactive dashboards using D3.js</li>
-            </ul>
-        </div>
+    <div class="experience-item">
+      <h3>NYC Department of Transportation</h3>
+      <p class="exp-role">Data Science Engineering Intern - Pavement Profile Project</p>
+      <p class="exp-date">Jun. 2023 – Aug. 2023</p>
+      <ul>
+        <li>Digitized roadway deterioration modeling using GIS alongside city planners &amp; civil engineers</li>
+        <li>Streamlined metadata organization and advanced dataset querying</li>
+        <li>Engineered dynamic maps and interactive dashboards with D3.js</li>
+      </ul>
+    </div>
 
-        <div class="experience-item">
-            <h3>Bank of America</h3>
-            <p class="exp-role">Software Engineering Intern</p>
-            <p class="exp-date">Jun. 2022 – Aug. 2022</p>
-            <ul>
-                <li>Developed and deployed predictive models using Python, TensorFlow, and Scikit-Learn</li>
-                <li>Implemented AES encryption using PyCryptodome and RSA encryption</li>
-                <li>Collaborated with the cloud engineering team to migrate legacy systems to AWS</li>
-                <li>Developed user interfaces for internal tools using React.js and Redux</li>
-            </ul>
-        </div>
+    <div class="experience-item">
+      <h3>Bank of America</h3>
+      <p class="exp-role">Software Engineering Intern</p>
+      <p class="exp-date">Jun. 2022 – Aug. 2022</p>
+      <ul>
+        <li>Built and deployed predictive models using Python, TensorFlow, and Scikit-Learn</li>
+        <li>Implemented AES &amp; RSA encryption with PyCryptodome</li>
+        <li>Collaborated with cloud engineering to migrate legacy systems to AWS</li>
+        <li>Developed React.js / Redux interfaces for internal tooling</li>
+      </ul>
+    </div>
 
-        <div class="experience-item">
-            <h3>Openwave Computing</h3>
-            <p class="exp-role">Software Engineering Intern | QuikAllot – Field Service Management Software</p>
-            <p class="exp-date">Jun. 2021 – Aug. 2021</p>
-            <ul>
-                <li>Designed and developed mobile UI screens using Figma</li>
-                <li>Implemented client-side features using React.js, Redux, and Axios</li>
-                <li>Developed employer-side solutions including real-time GIS tracking</li>
-                <li>Designed database architecture in AWS RDS and built RESTful APIs</li>
-            </ul>
-        </div>
-    `;
-    
-    expWindow.find('.window-content').html(content);
-    $('main').append(expWindow);
+    <div class="experience-item">
+      <h3>Openwave Computing</h3>
+      <p class="exp-role">Software Engineering Intern - QuikAllot (Field Service Management)</p>
+      <p class="exp-date">Jun. 2021 – Aug. 2021</p>
+      <ul>
+        <li>Designed mobile UI screens in Figma; implemented client-side features with React.js &amp; Redux</li>
+        <li>Developed real-time GIS tracking for employer-side solutions</li>
+        <li>Architected database schema on AWS RDS and built RESTful APIs</li>
+      </ul>
+    </div>
+  `);
+  $('main').append(w);
 }
+
 
 function createProjectsWindow() {
-    const projectsWindow = createWindowElement('projects', 'projects', 310, 110);
-    
-    // Made project titles into clickable links that open in new tabs
-    const content = `
-        <div class="project-card">
-            <div class="project-title">
-                <a href="https://github.com/mehd-mihir/fitness-tracker" target="_blank">Fitness Tracker Dashboard</a>
-            </div>
-            <p>Java, JavaFX, Chart.js, Google Maps API, Firebase</p>
-            <ul>
-                <li>Developed a desktop application to enable users to log workouts and track progress</li>
-                <li>Implemented data visualization using Chart.js</li>
-                <li>Utilized TensorFlow Java API for predictive analytics</li>
-                <li>Integrated Firebase for real-time database and authentication</li>
-            </ul>
-        </div>
+  const w = createWindowElement('projects', 'projects', 100, 80);
+  w.find('.window-content').html(`
+    <div class="project-card">
+      <div class="project-title">
+        <a href="https://github.com/mehd-mihir/fitness-tracker" target="_blank">Fitness Tracker Dashboard</a>
+      </div>
+      <p>Java · JavaFX · Chart.js · Google Maps API · Firebase · TensorFlow Java</p>
+      <ul>
+        <li>Desktop application for workout logging and progress tracking</li>
+        <li>Data visualization with Chart.js; predictive analytics via TensorFlow Java API</li>
+        <li>Firebase real-time database and authentication</li>
+      </ul>
+    </div>
 
-        <div class="project-card">
-            <div class="project-title">
-                <a href="https://github.com/mehd-mihir/finance-management-app" target="_blank">Personal Finance Management App</a>
-            </div>
-            <p>React Native, Node.js, AWS (DynamoDB, Lambda, S3)</p>
-            <ul>
-                <li>Developed a mobile app to track expenses, set budgets, and achieve financial goals.</li>
-                <li>Engineered with React Native for cross-platform use; integrated AWS DynamoDB.</li>
-                <li>Utilized AWS Lambda for serverless functions and AWS S3 for secure media storage.</li>
-            </ul>
-        </div>
+    <div class="project-card">
+      <div class="project-title">
+        <a href="https://github.com/mehd-mihir/finance-management-app" target="_blank">Personal Finance Management App</a>
+      </div>
+      <p>React Native · Node.js · AWS DynamoDB · Lambda · S3</p>
+      <ul>
+        <li>Cross-platform mobile app for expense tracking, budgeting, and financial goals</li>
+        <li>Serverless architecture with AWS Lambda; secure media storage on S3</li>
+      </ul>
+    </div>
 
-        <div class="project-card">
-            <div class="project-title">
-                <a href="https://github.com/mehdimihir/CS-370-Deep-Q-Learning-Agent" target="_blank">Treasure Hunt Game: Deep Q-Learning Agent</a>
-            </div>
-            <p>Python, TensorFlow/Keras, NumPy, Matplotlib, Jupyter Notebook</p>
-            <ul>
-                <li>Implemented a reinforcement learning project with an intelligent pirate agent that navigates a maze using deep Q-learning.</li>
-                <li>Designed neural network architecture for decision-making in an 8×8 maze.</li>
-                <li>Utilized experience replay mechanism for stable learning and improved performance.</li>
-                <li>Applied epsilon-greedy exploration strategy to balance exploration and exploitation.</li>
-                <li>Developed and fine-tuned reward system to incentivize efficient navigation.</li>
-            </ul>
-        </div>
+    <div class="project-card">
+      <div class="project-title">
+        <a href="https://github.com/mehdimihir/CS-370-Deep-Q-Learning-Agent" target="_blank">Treasure Hunt: Deep Q-Learning Agent</a>
+      </div>
+      <p>Python · TensorFlow/Keras · NumPy · Matplotlib · Jupyter</p>
+      <ul>
+        <li>Reinforcement learning agent navigating an 8×8 maze via deep Q-learning</li>
+        <li>Experience replay, epsilon-greedy strategy, custom neural network architecture</li>
+      </ul>
+    </div>
 
-        <div class="project-card">
-            <div class="project-title">
-                <a href="https://github.com/mehdimihir/CS-330-Zen-Garden-OpenGL" target="_blank">Zen Garden Visualization in OpenGL</a>
-            </div>
-            <p>OpenGL, GLEW, GLM, GLFW</p>
-            <ul>
-                <li>Developed a 3D visualization project featuring an interactive Zen garden scene with textured objects and dynamic lighting.</li>
-                <li>Implemented a textured container, wooden bridge, and decorative ornaments using various primitives and composite shapes.</li>
-                <li>Created an interactive camera system with WASD movement and mouse controls.</li>
-                <li>Enabled toggling between perspective and orthographic views for flexible visualization.</li>
-            </ul>
-        </div>
-
-        <!-- Extra Projects -->
-
-        <!-- <div class="project-card">
-            <div class="project-title">Draw It or Lose It</div>
-            <p>HTML, CSS, JavaScript, Node.js, Express, MongoDB, WebSocket, SSL/TLS, JWT, OAuth</p>
-            <ul>
-                <li>Developed a multi-user game application for The Gaming Room client.</li>
-                <li>Implemented secure communication between platforms using SSL/TLS, WebSocket, and JWT.</li>
-                <li>Analyzed and provided recommendations on operating platforms, architectures, storage, memory management, and security.</li>
-                <li>Collaborated effectively through structured design documentation.</li>
-            </ul>
-        </div> -->
-
-        <!-- <div class="project-card">
-            <div class="project-title">Travlr Getaways - Travel Booking App</div>
-            <p>HTML, CSS, JavaScript, Node.js, Express, Angular, MongoDB</p>
-            <ul>
-                <li>Implemented server-side rendering with Express HTML and Handlebars templates for initial views.</li>
-                <li>Enhanced client-side interactivity with JavaScript and DOM manipulation.</li>
-                <li>Created a Single-Page Application (SPA) using Angular for dynamic content updates.</li>
-                <li>Utilized MongoDB for flexible schema design, JSON-like document model, and excellent performance.</li>
-                <li>Refactored code with reusable components, centralized security management, and modular API endpoints.</li>
-                <li>Implemented JWT token authentication, request validation middleware, and role-based access control.</li>
-                <li>Conducted API testing with Postman and debugging using browser dev tools.</li>
-            </ul>
-        </div> -->
-        
-        <!-- Add more projects when I want -->
-    `;
-    
-    projectsWindow.find('.window-content').html(content);
-    $('main').append(projectsWindow);
+    <div class="project-card">
+      <div class="project-title">
+        <a href="https://github.com/mehdimihir/CS-330-Zen-Garden-OpenGL" target="_blank">Zen Garden Visualization - OpenGL</a>
+      </div>
+      <p>C++ · OpenGL · GLEW · GLM · GLFW</p>
+      <ul>
+        <li>3D interactive Zen garden with textured objects and dynamic lighting</li>
+        <li>WASD + mouse camera system; toggleable perspective / orthographic views</li>
+      </ul>
+    </div>
+  `);
+  $('main').append(w);
 }
+
 
 function createSkillsWindow() {
-    const skillsWindow = createWindowElement('skills', 'technical skills', 340, 140);
-    
-    const content = `
-        <div class="skill-category">
-            <div class="skill-title">Languages</div>
-            <div class="skill-list">
-                <div class="skill-item">Python</div>
-                <div class="skill-item">Java</div>
-                <div class="skill-item">C++</div>
-                <div class="skill-item">JavaScript</div>
-                <div class="skill-item">TypeScript</div>
-                <div class="skill-item">SQL</div>
-                <div class="skill-item">Swift</div>
-            </div>
-        </div>
-        
-        <div class="skill-category">
-            <div class="skill-title">Technologies & Frameworks</div>
-            <div class="skill-list">
-                <div class="skill-item">AWS</div>
-                <div class="skill-item">Linux</div>
-                <div class="skill-item">DynamoDB</div>
-                <div class="skill-item">Firebase</div>
-                <div class="skill-item">PostGres</div>
-                <div class="skill-item">GCP</div>
-                <div class="skill-item">React</div>
-                <div class="skill-item">MongoDB</div>
-                <div class="skill-item">Express</div>
-                <div class="skill-item">Angular</div>
-                <div class="skill-item">Node.js</div>
-                <div class="skill-item">jQuery</div>
-                <div class="skill-item">Git</div>
-                <div class="skill-item">Docker</div>
-                <div class="skill-item">Kubernetes</div>
-                <div class="skill-item">Jenkins</div>
-                <div class="skill-item">PyTorch</div>
-                <div class="skill-item">TensorFlow</div>
-            </div>
-        </div>
-    `;
-    
-    skillsWindow.find('.window-content').html(content);
-    $('main').append(skillsWindow);
+  const w = createWindowElement('skills', 'technical skills', 130, 105);
+  w.find('.window-content').html(`
+    <div class="skill-category">
+      <div class="skill-title">Languages</div>
+      <div class="skill-list">
+        <div class="skill-item">Python</div>
+        <div class="skill-item">Java</div>
+        <div class="skill-item">C++</div>
+        <div class="skill-item">JavaScript</div>
+        <div class="skill-item">TypeScript</div>
+        <div class="skill-item">SQL</div>
+        <div class="skill-item">Swift</div>
+      </div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-title">Frameworks & Libraries</div>
+      <div class="skill-list">
+        <div class="skill-item">React</div>
+        <div class="skill-item">React Native</div>
+        <div class="skill-item">Angular</div>
+        <div class="skill-item">Node.js</div>
+        <div class="skill-item">Flask</div>
+        <div class="skill-item">Express</div>
+        <div class="skill-item">PyTorch</div>
+        <div class="skill-item">TensorFlow</div>
+        <div class="skill-item">jQuery</div>
+      </div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-title">Cloud & DevOps</div>
+      <div class="skill-list">
+        <div class="skill-item">AWS</div>
+        <div class="skill-item">GCP</div>
+        <div class="skill-item">Docker</div>
+        <div class="skill-item">Kubernetes</div>
+        <div class="skill-item">Jenkins</div>
+        <div class="skill-item">Linux</div>
+        <div class="skill-item">Git</div>
+      </div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-title">Databases</div>
+      <div class="skill-list">
+        <div class="skill-item">PostgreSQL</div>
+        <div class="skill-item">MongoDB</div>
+        <div class="skill-item">DynamoDB</div>
+        <div class="skill-item">Firebase</div>
+      </div>
+    </div>
+  `);
+  $('main').append(w);
 }
+
 
 function createResumeWindow() {
-    const resumeWindow = createWindowElement('resume', 'resume', 370, 170);
-    
-    const content = `
-        <p>you can download my resume as a PDF:</p>
-        <button id="download-resume" class="retro-button">Download Resume</button>
-        
-        <div class="resume-preview">
-            <h3>Mehdi Mihir</h3>
-            <p>(347) 247 1655 | mehdi.mihir[at]gmail[dot]com | <a href="https://linkedin.com/in/mmihir" target="_blank">LinkedIn</a> | <a href="https://github.com/mehd-mihir" target="_blank">GitHub</a></p>
-            <br>
-            <h4>Education</h4>
-            <p>Southern New Hampshire University, BS in Computer Science (Honors)</p>
-            <p>Sep. 2022 – April 2025</p>
-            <br>
-            <p>Stony Brook University, BS in Computer Science</p>
-            <p>Sep. 2020 – June 2022</p>
-            
-            <!-- Resume preview content continues here -->
-        </div>
-    `;
-    
-    resumeWindow.find('.window-content').html(content);
-    $('main').append(resumeWindow);
-    
-    // Add download functionality
-    $(document).on('click', '#download-resume', function() {
-        // Resume PDF for download
-        window.open('assets/Mehdi-Mihir-SWE-Resume.pdf', '_blank');
-    });
+  const w = createWindowElement('resume', 'resume', 160, 130);
+  w.find('.window-content').html(`
+    <p>download my resume as a PDF:</p>
+    <button id="download-resume" class="retro-button">↓ &nbsp;Download Resume</button>
+
+    <div class="resume-preview">
+      <h3>Mehdi Mihir</h3>
+      <p>(347) 247-1655 &nbsp;·&nbsp; mehdi.mihir [at] gmail [dot] com</p>
+      <p>
+        <a href="https://linkedin.com/in/mmihir" target="_blank">LinkedIn</a>
+        &nbsp;·&nbsp;
+        <a href="https://github.com/mehdimihir" target="_blank">GitHub</a>
+      </p>
+      <br>
+      <h4>Education</h4>
+      <p>Southern New Hampshire University<br>
+         B.S. Computer Science - Honors &nbsp;·&nbsp; 2025</p>
+      <br>
+      <p>Stony Brook University<br>
+         B.S. Computer Science (transferred) &nbsp;·&nbsp; 2020–2022</p>
+    </div>
+  `);
+  $('main').append(w);
 }
 
+
 function createPapersWindow() {
-    const papersWindow = createWindowElement('papers', 'academic papers', 400, 200);
-    
-    const content = `
-        <div class="papers-intro">
-            <p>here are some of my academic papers and research projects.</p>
-        </div>
+  const w = createWindowElement('papers', 'academic papers', 190, 155);
+  w.find('.window-content').html(`
+    <div class="papers-intro">
+      <p>a selection of academic writing and research.</p>
+    </div>
 
-        <div class="paper-item">
-            <h3>Digital Wellness Technologies and Mental Health</h3>
-            <p class="paper-date">Winter 2025</p>
-            <p class="paper-description">
-                This paper shows that while Generation Z widely adopts digital wellness tools, their impact on mental health is paradoxical
-                — these technologies often fall short of delivering lasting benefits and can even contribute to anxiety and digital fatigue.
-            </p>
-            <div class="paper-tags">
-                <span class="paper-tag">Digital Wellness</span>
-                <span class="paper-tag">Generation Z</span>
-                <span class="paper-tag">Mental Health</span>
-                <span class="paper-tag">Digital Fatigue</span>
-            </div>
-            <a href="assets/Digital-Wellness-Technologies-Mental-Health.pdf" target="_blank" class="retro-button paper-view-btn">View Paper</a>
-        </div>
-        
-        <div class="paper-item">
-            <h3>Cloud-based Microservice Architecture: Benefits and Challenges</h3>
-            <p class="paper-date">Spring 2023</p>
-            <p class="paper-description">
-                An exploration of microservice architectures in cloud environments, discussing the advantages,
-                challenges, and best practices for implementation.
-            </p>
-            <div class="paper-tags">
-                <span class="paper-tag">Cloud Computing</span>
-                <span class="paper-tag">Microservices</span>
-                <span class="paper-tag">DevOps</span>
-            </div>
-            <a href="assets/Cloud-Microservice-Paper.pdf" target="_blank" class="retro-button paper-view-btn">View Paper</a>
-        </div>
+    <div class="paper-item">
+      <h3>Digital Wellness Technologies and Mental Health</h3>
+      <p class="paper-date">Winter 2025</p>
+      <p class="paper-description">
+        Examines why Gen Z's adoption of digital wellness apps often produces
+        paradoxical outcomes - falling short of lasting benefits while
+        contributing to anxiety and digital fatigue.
+      </p>
+      <div class="paper-tags">
+        <span class="paper-tag">Digital Wellness</span>
+        <span class="paper-tag">Generation Z</span>
+        <span class="paper-tag">Mental Health</span>
+        <span class="paper-tag">Digital Fatigue</span>
+      </div>
+      <a href="assets/Digital-Wellness-Technologies-Mental-Health.pdf"
+         target="_blank" class="retro-button paper-view-btn">↗ View Paper</a>
+    </div>
 
-        <!--
-        <div class="paper-item">
-            <h3>Machine Learning Approaches to Network Intrusion Detection</h3>
-            <p class="paper-date">Spring 2024</p>
-            <p class="paper-description">
-                This paper explores various machine learning techniques for detecting network intrusions,
-                comparing the effectiveness of supervised and unsupervised learning methods on common datasets.
-            </p>
-            <div class="paper-tags">
-                <span class="paper-tag">Cybersecurity</span>
-                <span class="paper-tag">Machine Learning</span>
-                <span class="paper-tag">Network Security</span>
-            </div>
-            <a href="assets/ml-network-intrusion.pdf" target="_blank" class="retro-button paper-view-btn">View Paper</a>
-        </div> -->
-    `;
-    
-    papersWindow.find('.window-content').html(content);
-    $('main').append(papersWindow);
-    
-    // REMOVED: Paper view functionality that creates modals
-    // Instead, the links now directly point to PDF files for download
+    <div class="paper-item">
+      <h3>Cloud-based Microservice Architecture: Benefits and Challenges</h3>
+      <p class="paper-date">Spring 2023</p>
+      <p class="paper-description">
+        Explores microservice architectures in cloud environments - advantages,
+        trade-offs, and implementation best practices.
+      </p>
+      <div class="paper-tags">
+        <span class="paper-tag">Cloud Computing</span>
+        <span class="paper-tag">Microservices</span>
+        <span class="paper-tag">DevOps</span>
+      </div>
+      <a href="assets/Cloud-Microservice-Paper.pdf"
+         target="_blank" class="retro-button paper-view-btn">↗ View Paper</a>
+    </div>
+  `);
+  $('main').append(w);
 }
