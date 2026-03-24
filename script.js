@@ -730,7 +730,7 @@ function createExperienceWindow() {
   w.find('.window-content').html(`
     <div class="experience-item">
       <h3>GlaxoSmithKline (GSK)</h3>
-      <p class="exp-role">Senior Full-Stack Software Engineer</p>
+      <p class="exp-role">Full-Stack Software Engineer</p>
       <p class="exp-date">Jun. 2025 – Present</p>
       <ul>
         <li>Built Python–Benchling integration replacing manual CSV uploads for lab scientists</li>
