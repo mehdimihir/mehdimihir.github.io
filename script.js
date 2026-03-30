@@ -1,5 +1,5 @@
 // Mehdi Mihir · Portfolio
-// script.js - Cosmic OS Redesign
+// script.js — Cosmic OS Redesign
 // Bug fix: containment: 'parent' (was 'body') prevents window drift on resize
 
 // ── Ambient Particle System ──────────────────────────────────
@@ -399,7 +399,7 @@ $(document).ready(function () {
 
     const PALETTE = [[0,229,255],[6,182,212],[56,189,248],[99,102,241],[165,243,252]];
 
-    // Fixed-size circular pool - never grows, never crashes
+    // Fixed-size circular pool — never grows, never crashes
     const MAX_BUBBLES = 120;
     const pool = [];
     let   poolHead = 0; // next slot to overwrite
@@ -498,7 +498,7 @@ $(document).ready(function () {
       const elapsed = ts - startT;
       const phaseEl = ts - phaseT;
 
-      // Always schedule next frame first - never miss a beat
+      // Always schedule next frame first — never miss a beat
       requestAnimationFrame(tick);
 
       // ── Background fill ──
@@ -521,7 +521,7 @@ $(document).ready(function () {
           shaft.addColorStop(1,   'rgba(0,0,0,0)');
           ctx.fillStyle = shaft; ctx.fillRect(0, 0, W, H);
         }
-        // Trickle-spawn - only if pool has room and we are before 65%
+        // Trickle-spawn — only if pool has room and we are before 65%
         if (t < 0.65 && Math.random() < 0.22) spawnBubble();
       }
 
@@ -582,13 +582,13 @@ $(document).ready(function () {
   // ── Desktop icons ──
   function createDesktopIcons() {
     const icons = [
-      { name: 'Visual Studio', icon: 'visual-studio.png' },
-      { name: 'VS Code',       icon: 'vscode.png'        },
-      { name: 'Jupyter',       icon: 'jupyter.png'       },
-      { name: 'Docker',        icon: 'docker.png'        },
-      { name: 'AWS',           icon: 'aws.png'           },
-      { name: 'GitHub',        icon: 'github.png'        },
-      { name: 'Jira',          icon: 'jira.png'          },
+      { name: 'Postman',  icon: 'postman.png'  },
+      { name: 'VS Code',  icon: 'vscode.png'   },
+      { name: 'Jupyter',  icon: 'jupyter.png'  },
+      { name: 'Docker',   icon: 'docker.png'   },
+      { name: 'AWS',      icon: 'aws.png'      },
+      { name: 'GitHub',   icon: 'github.png'   },
+      { name: 'Jira',     icon: 'jira.png'     },
     ];
 
     if (!$('.desktop-icons').length) $('body').append('<div class="desktop-icons"></div>');
@@ -668,16 +668,16 @@ function createWindowElement(id, title, left, top) {
       const elW           = $(this).outerWidth();
       const elH           = $(this).outerHeight();
       const SIDEBAR_RIGHT = 210;
-      const SIDEBAR_BOT   = 270; // approx bottom of nav card
+      const SIDEBAR_BOT   = 270;
 
-      // A window may enter the left zone ONLY if it fits entirely below the nav.
-      // i.e. its top edge is at or below the sidebar's bottom edge.
-      // Any vertical overlap with the sidebar → enforce the right boundary.
-      const windowTop    = ui.position.top;
-      const fitsBelow    = windowTop >= SIDEBAR_BOT;
-      const leftMin      = fitsBelow ? 0 : SIDEBAR_RIGHT;
+      // Two conditions must BOTH be true to allow the left zone:
+      // 1. Window top edge is at or below the nav card's bottom edge
+      // 2. Window is short enough to physically fit in the space below the nav
+      //    (if it can't fit there, it can never legally occupy the left zone)
+      const isBelow        = ui.position.top >= SIDEBAR_BOT;
+      const fitsVertically = elH <= (dH - SIDEBAR_BOT);
+      const leftMin        = (isBelow && fitsVertically) ? 0 : SIDEBAR_RIGHT;
 
-      // Hard clamp: window must stay fully within the desktop in all directions
       ui.position.left = Math.max(leftMin, Math.min(ui.position.left, dW - elW));
       ui.position.top  = Math.max(0,       Math.min(ui.position.top,  dH - elH));
     },
@@ -700,18 +700,15 @@ function createAboutWindow() {
   const w = createWindowElement('about', 'about', 40, 30);
   w.find('.window-content').html(`
     <h2>hello, world.</h2>
-    <p>i'm <strong>Mehdi Mihir</strong> - a full-stack software engineer
-       based in the Boston area, currently at
-       <strong>GlaxoSmithKline</strong> building tools that accelerate
-       scientific research.</p>
+    <p>i'm <strong>Mehdi Mihir</strong> — a software engineer based in the
+       Boston area, currently at <strong>GlaxoSmithKline</strong>.</p>
 
     <img src="assets/profile-picture.jpg" alt="Mehdi Mihir" class="profile-pic">
 
-    <p>SNHU Computer Science graduate (Honors, 2025). Passionate about
-       clean systems, thoughtful UI, and turning complex data into
-       something people can actually use.</p>
+    <p>I work across Python, Java, and TypeScript stacks, building backend
+       services, full-stack applications, and production APIs.</p>
 
-    <p>feel free to reach out!</p>
+    <p>SNHU Computer Science, B.S. Honors, 2025. feel free to reach out.</p>
 
     <div class="contact-links">
       <p><strong>github</strong> &nbsp;→&nbsp;
@@ -730,47 +727,45 @@ function createExperienceWindow() {
   w.find('.window-content').html(`
     <div class="experience-item">
       <h3>GlaxoSmithKline (GSK)</h3>
-      <p class="exp-role">Full-Stack Software Engineer</p>
-      <p class="exp-date">Jun. 2025 – Present</p>
+      <p class="exp-role">Software Engineer</p>
+      <p class="exp-date">Jun. 2025 — Present</p>
+      <p class="exp-stack">React · FastAPI · Spring Boot · Python · Docker · AWS · GCP · PostgreSQL</p>
       <ul>
-        <li>Built Python–Benchling integration replacing manual CSV uploads for lab scientists</li>
-        <li>Refactored legacy C++ sequence pipeline - significant speed and memory improvements</li>
-        <li>Developed React / Flask QC dashboard for real-time DNA sequencing metrics</li>
-        <li>Collaborated with cross-functional teams in a pharma-grade regulated environment</li>
+        <li>Built internal tooling that eliminated manual data entry for 100+ scientists</li>
+        <li>Designed and shipped a full-stack pipeline monitoring dashboard for production observability</li>
       </ul>
     </div>
 
     <div class="experience-item">
       <h3>NYC Department of Transportation</h3>
-      <p class="exp-role">Data Science Engineering Intern - Pavement Profile Project</p>
-      <p class="exp-date">Jun. 2023 – Aug. 2023</p>
+      <p class="exp-role">Software Engineering Intern</p>
+      <p class="exp-date">Jun. 2023 — Aug. 2023</p>
+      <p class="exp-stack">Python · SQL · D3.js · PostgreSQL · REST APIs</p>
       <ul>
-        <li>Digitized roadway deterioration modeling using GIS alongside city planners &amp; civil engineers</li>
-        <li>Streamlined metadata organization and advanced dataset querying</li>
-        <li>Engineered dynamic maps and interactive dashboards with D3.js</li>
+        <li>Built data pipelines and tooling supporting citywide roadway condition analysis</li>
+        <li>Developed interactive geospatial dashboards used by city planners and engineers</li>
       </ul>
     </div>
 
     <div class="experience-item">
       <h3>Bank of America</h3>
       <p class="exp-role">Software Engineering Intern</p>
-      <p class="exp-date">Jun. 2022 – Aug. 2022</p>
+      <p class="exp-date">Jun. 2022 — Aug. 2022</p>
+      <p class="exp-stack">Python · React · Redux · AWS · TypeScript</p>
       <ul>
-        <li>Built and deployed predictive models using Python, TensorFlow, and Scikit-Learn</li>
-        <li>Implemented AES &amp; RSA encryption with PyCryptodome</li>
-        <li>Collaborated with cloud engineering to migrate legacy systems to AWS</li>
-        <li>Developed React.js / Redux interfaces for internal tooling</li>
+        <li>Built and tested UI components for analyst-facing internal applications</li>
+        <li>Contributed to cloud infrastructure migration to AWS alongside the platform team</li>
       </ul>
     </div>
 
     <div class="experience-item">
       <h3>Openwave Computing</h3>
-      <p class="exp-role">Software Engineering Intern - QuikAllot (Field Service Management)</p>
-      <p class="exp-date">Jun. 2021 – Aug. 2021</p>
+      <p class="exp-role">Software Engineering Intern</p>
+      <p class="exp-date">Jun. 2021 — Aug. 2021</p>
+      <p class="exp-stack">React · Node.js · PostgreSQL · REST APIs · Figma · AWS</p>
       <ul>
-        <li>Designed mobile UI screens in Figma; implemented client-side features with React.js &amp; Redux</li>
-        <li>Developed real-time GIS tracking for employer-side solutions</li>
-        <li>Architected database schema on AWS RDS and built RESTful APIs</li>
+        <li>Built RESTful APIs and designed the database schema for a field service platform</li>
+        <li>Delivered client-facing product screens from Figma designs to production</li>
       </ul>
     </div>
   `);
@@ -780,52 +775,131 @@ function createExperienceWindow() {
 
 function createProjectsWindow() {
   const w = createWindowElement('projects', 'projects', 100, 80);
-  w.find('.window-content').html(`
-    <div class="project-card">
-      <div class="project-title">
-        <a href="https://github.com/mehd-mihir/fitness-tracker" target="_blank">Fitness Tracker Dashboard</a>
-      </div>
-      <p>Java · JavaFX · Chart.js · Google Maps API · Firebase · TensorFlow Java</p>
-      <ul>
-        <li>Desktop application for workout logging and progress tracking</li>
-        <li>Data visualization with Chart.js; predictive analytics via TensorFlow Java API</li>
-        <li>Firebase real-time database and authentication</li>
-      </ul>
-    </div>
 
-    <div class="project-card">
-      <div class="project-title">
-        <a href="https://github.com/mehd-mihir/finance-management-app" target="_blank">Personal Finance Management App</a>
-      </div>
-      <p>React Native · Node.js · AWS DynamoDB · Lambda · S3</p>
-      <ul>
-        <li>Cross-platform mobile app for expense tracking, budgeting, and financial goals</li>
-        <li>Serverless architecture with AWS Lambda; secure media storage on S3</li>
-      </ul>
-    </div>
+  const slides = [
+    {
+      label: 'Full-Stack Product',
+      sublabel: 'slide 1 of 3',
+      cards: [
+        {
+          title: 'TaskFlow',
+          url: 'https://github.com/mehdimihir/taskflow',
+          stack: 'React · TypeScript · FastAPI · Python · PostgreSQL · Docker · AWS · Tailwind CSS',
+          bullets: [
+            'Task and project management app with boards, assignments, deadlines, and activity feeds',
+            'JWT auth, workspace isolation, AWS deploy with containerized backend and S3 frontend',
+          ]
+        },
+        {
+          title: 'PulseBoard',
+          url: 'https://github.com/mehdimihir/pulseboard',
+          stack: 'React · TypeScript · Node.js · PostgreSQL · Redis · D3.js · Docker · Tailwind CSS',
+          bullets: [
+            'Monitoring dashboard with live WebSocket updates, D3.js charts, and threshold-based alerting',
+            'Redis pub/sub ingestion layer, metric rollups in PostgreSQL, incident history replay mode',
+          ]
+        }
+      ]
+    },
+    {
+      label: 'Python / Node Backend',
+      sublabel: 'slide 2 of 3',
+      cards: [
+        {
+          title: 'HookRelay',
+          url: 'https://github.com/mehdimihir/hookrelay',
+          stack: 'Python · FastAPI · PostgreSQL · Redis · Docker · pytest · GitHub Actions',
+          bullets: [
+            'Webhook relay service with configurable retry policies, exponential backoff, and delivery logs',
+            'FastAPI async architecture; Redis event queue; full pytest suite; single-command Docker deploy',
+          ]
+        },
+        {
+          title: 'ShiftSync',
+          url: 'https://github.com/mehdimihir/shiftsync',
+          stack: 'Node.js · Express · PostgreSQL · TypeScript · Jest · Docker · GitHub Actions',
+          bullets: [
+            'Shift scheduling API with conflict detection, role-scoped permissions, and notification hooks',
+            'TypeScript throughout, OpenAPI spec, Jest integration tests, GitHub Actions CI on every PR',
+          ]
+        }
+      ]
+    },
+    {
+      label: 'Java / Fintech',
+      sublabel: 'slide 3 of 3',
+      cards: [
+        {
+          title: 'PayGate',
+          url: 'https://github.com/mehdimihir/paygate',
+          stack: 'Java · Spring Boot · PostgreSQL · Redis · Docker · AWS · JUnit 5 · GitHub Actions',
+          bullets: [
+            'Payment processing REST API with idempotency, JWT auth, Redis rate limiting, and full audit trail',
+            'Containerized with Docker, deployed to AWS with RDS; CI/CD via GitHub Actions',
+          ]
+        },
+        {
+          title: 'FlowDesk',
+          url: 'https://github.com/mehdimihir/flowdesk',
+          stack: 'Java · Spring Boot · PostgreSQL · React · TypeScript · Docker · Maven',
+          bullets: [
+            'Full-stack financial operations platform for invoice tracking, payments, and cash flow reporting',
+            'PDF/CSV export, role-scoped dashboards, Swagger docs, and Maven CI pipeline',
+          ]
+        }
+      ]
+    }
+  ];
 
-    <div class="project-card">
-      <div class="project-title">
-        <a href="https://github.com/mehdimihir/CS-370-Deep-Q-Learning-Agent" target="_blank">Treasure Hunt: Deep Q-Learning Agent</a>
+  function renderSlide(idx) {
+    const s = slides[idx];
+    const cardsHtml = s.cards.map(c => `
+      <div class="project-card">
+        <div class="project-title">
+          <a href="${c.url}" target="_blank">${c.title}</a>
+        </div>
+        <p>${c.stack}</p>
+        <ul>${c.bullets.map(b => '<li>' + b + '</li>').join('')}</ul>
       </div>
-      <p>Python · TensorFlow/Keras · NumPy · Matplotlib · Jupyter</p>
-      <ul>
-        <li>Reinforcement learning agent navigating an 8×8 maze via deep Q-learning</li>
-        <li>Experience replay, epsilon-greedy strategy, custom neural network architecture</li>
-      </ul>
-    </div>
+    `).join('');
 
-    <div class="project-card">
-      <div class="project-title">
-        <a href="https://github.com/mehdimihir/CS-330-Zen-Garden-OpenGL" target="_blank">Zen Garden Visualization - OpenGL</a>
+    return `
+      <div class="proj-carousel">
+        <div class="proj-carousel-header">
+          <button class="proj-arrow proj-prev" ${idx === 0 ? 'disabled' : ''}>&#8592;</button>
+          <div class="proj-carousel-meta">
+            <span class="proj-slide-label">${s.label}</span>
+            <span class="proj-slide-sub">${s.sublabel}</span>
+          </div>
+          <button class="proj-arrow proj-next" ${idx === slides.length - 1 ? 'disabled' : ''}>&#8594;</button>
+        </div>
+        <div class="proj-cards-row">
+          ${cardsHtml}
+        </div>
+        <div class="proj-dots">
+          ${slides.map((_, i) => '<span class="proj-dot' + (i === idx ? ' proj-dot-active' : '') + '"></span>').join('')}
+        </div>
       </div>
-      <p>C++ · OpenGL · GLEW · GLM · GLFW</p>
-      <ul>
-        <li>3D interactive Zen garden with textured objects and dynamic lighting</li>
-        <li>WASD + mouse camera system; toggleable perspective / orthographic views</li>
-      </ul>
-    </div>
-  `);
+    `;
+  }
+
+  let currentSlide = 0;
+
+  function paint() {
+    w.find('.window-content').html(renderSlide(currentSlide));
+    w.find('.proj-prev').on('click', function() {
+      if (currentSlide > 0) { currentSlide--; paint(); }
+    });
+    w.find('.proj-next').on('click', function() {
+      if (currentSlide < slides.length - 1) { currentSlide++; paint(); }
+    });
+    w.find('.proj-dot').on('click', function() {
+      currentSlide = $(this).index();
+      paint();
+    });
+  }
+
+  paint();
   $('main').append(w);
 }
 
@@ -838,49 +912,68 @@ function createSkillsWindow() {
       <div class="skill-list">
         <div class="skill-item">Python</div>
         <div class="skill-item">Java</div>
-        <div class="skill-item">C++</div>
         <div class="skill-item">JavaScript</div>
         <div class="skill-item">TypeScript</div>
         <div class="skill-item">SQL</div>
-        <div class="skill-item">Swift</div>
       </div>
     </div>
 
     <div class="skill-category">
-      <div class="skill-title">Frameworks & Libraries</div>
+      <div class="skill-title">Frontend</div>
       <div class="skill-list">
         <div class="skill-item">React</div>
-        <div class="skill-item">React Native</div>
-        <div class="skill-item">Angular</div>
-        <div class="skill-item">Node.js</div>
-        <div class="skill-item">Flask</div>
-        <div class="skill-item">Express</div>
-        <div class="skill-item">PyTorch</div>
-        <div class="skill-item">TensorFlow</div>
-        <div class="skill-item">jQuery</div>
+        <div class="skill-item">Redux</div>
+        <div class="skill-item">D3.js</div>
+        <div class="skill-item">Tailwind CSS</div>
+        <div class="skill-item">Figma</div>
       </div>
     </div>
 
     <div class="skill-category">
-      <div class="skill-title">Cloud & DevOps</div>
+      <div class="skill-title">Backend</div>
+      <div class="skill-list">
+        <div class="skill-item">FastAPI</div>
+        <div class="skill-item">Spring Boot</div>
+        <div class="skill-item">Node.js</div>
+        <div class="skill-item">Express</div>
+        <div class="skill-item">REST APIs</div>
+        <div class="skill-item">Pydantic</div>
+        <div class="skill-item">Maven</div>
+      </div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-title">Cloud & Infra</div>
       <div class="skill-list">
         <div class="skill-item">AWS</div>
         <div class="skill-item">GCP</div>
         <div class="skill-item">Docker</div>
-        <div class="skill-item">Kubernetes</div>
-        <div class="skill-item">Jenkins</div>
+        <div class="skill-item">PostgreSQL</div>
+        <div class="skill-item">MySQL</div>
+        <div class="skill-item">Redis</div>
         <div class="skill-item">Linux</div>
-        <div class="skill-item">Git</div>
       </div>
     </div>
 
     <div class="skill-category">
-      <div class="skill-title">Databases</div>
+      <div class="skill-title">Testing & CI/CD</div>
       <div class="skill-list">
-        <div class="skill-item">PostgreSQL</div>
-        <div class="skill-item">MongoDB</div>
-        <div class="skill-item">DynamoDB</div>
-        <div class="skill-item">Firebase</div>
+        <div class="skill-item">pytest</div>
+        <div class="skill-item">JUnit 5</div>
+        <div class="skill-item">Mockito</div>
+        <div class="skill-item">Jest</div>
+        <div class="skill-item">GitHub Actions</div>
+      </div>
+    </div>
+
+    <div class="skill-category">
+      <div class="skill-title">Tools</div>
+      <div class="skill-list">
+        <div class="skill-item">Git</div>
+        <div class="skill-item">Postman</div>
+        <div class="skill-item">Swagger</div>
+        <div class="skill-item">IntelliJ</div>
+        <div class="skill-item">Agile / Scrum</div>
       </div>
     </div>
   `);
@@ -891,24 +984,27 @@ function createSkillsWindow() {
 function createResumeWindow() {
   const w = createWindowElement('resume', 'resume', 160, 130);
   w.find('.window-content').html(`
-    <p>download my resume as a PDF:</p>
-    <button id="download-resume" class="retro-button">↓ &nbsp;Download Resume</button>
-
     <div class="resume-preview">
       <h3>Mehdi Mihir</h3>
-      <p>(347) 247-1655 &nbsp;·&nbsp; mehdi.mihir [at] gmail [dot] com</p>
+      <p style="margin-bottom:4px;">(347) 247-1655 &nbsp;·&nbsp; mehdi.mihir [at] gmail [dot] com</p>
       <p>
         <a href="https://linkedin.com/in/mmihir" target="_blank">LinkedIn</a>
         &nbsp;·&nbsp;
         <a href="https://github.com/mehdimihir" target="_blank">GitHub</a>
       </p>
-      <br>
-      <h4>Education</h4>
-      <p>Southern New Hampshire University<br>
-         B.S. Computer Science - Honors &nbsp;·&nbsp; 2025</p>
-      <br>
-      <p>Stony Brook University<br>
-         B.S. Computer Science (transferred) &nbsp;·&nbsp; 2020–2022</p>
+    </div>
+
+    <div style="margin-top:16px;">
+      <h4 style="margin-bottom:10px;">Education</h4>
+      <p style="margin-bottom:2px;"><strong>Southern New Hampshire University</strong></p>
+      <p style="margin-bottom:8px;color:rgba(224,242,254,0.6);font-size:13px;">B.S. Computer Science, Honors &nbsp;·&nbsp; 2025</p>
+      <p style="margin-bottom:2px;"><strong>Stony Brook University</strong></p>
+      <p style="color:rgba(224,242,254,0.6);font-size:13px;">B.S. Computer Science (transferred) &nbsp;·&nbsp; 2020 — 2022</p>
+    </div>
+
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(6,182,212,0.16);">
+      <p style="margin-bottom:12px;color:rgba(224,242,254,0.6);font-size:13px;">Full-stack resume covering Python, Java, and TypeScript experience.</p>
+      <button id="download-resume" class="retro-button">↓ &nbsp;Download Resume</button>
     </div>
   `);
   $('main').append(w);
@@ -919,7 +1015,7 @@ function createPapersWindow() {
   const w = createWindowElement('papers', 'academic papers', 190, 155);
   w.find('.window-content').html(`
     <div class="papers-intro">
-      <p>a selection of academic writing and research.</p>
+      <p>what I wrote</p>
     </div>
 
     <div class="paper-item">
