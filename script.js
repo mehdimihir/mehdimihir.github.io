@@ -728,7 +728,7 @@ function createExperienceWindow() {
     <div class="experience-item">
       <h3>GlaxoSmithKline (GSK)</h3>
       <p class="exp-role">Software Engineer</p>
-      <p class="exp-date">Jun. 2025 — Present</p>
+      <p class="exp-date">Apr. 2025 — Present</p>
       <p class="exp-stack">React · FastAPI · Spring Boot · Python · Docker · AWS · GCP · PostgreSQL</p>
       <ul>
         <li>Built internal tooling that eliminated manual data entry for 100+ scientists</li>
@@ -739,7 +739,7 @@ function createExperienceWindow() {
     <div class="experience-item">
       <h3>NYC Department of Transportation</h3>
       <p class="exp-role">Software Engineering Intern</p>
-      <p class="exp-date">Jun. 2023 — Aug. 2023</p>
+      <p class="exp-date">Jun. 2024 — Aug. 2024</p>
       <p class="exp-stack">Python · SQL · D3.js · PostgreSQL · REST APIs</p>
       <ul>
         <li>Built data pipelines and tooling supporting citywide roadway condition analysis</li>
@@ -750,7 +750,7 @@ function createExperienceWindow() {
     <div class="experience-item">
       <h3>Bank of America</h3>
       <p class="exp-role">Software Engineering Intern</p>
-      <p class="exp-date">Jun. 2022 — Aug. 2022</p>
+      <p class="exp-date">Jun. 2023 — Aug. 2023</p>
       <p class="exp-stack">Python · React · Redux · AWS · TypeScript</p>
       <ul>
         <li>Built and tested UI components for analyst-facing internal applications</li>
@@ -761,7 +761,7 @@ function createExperienceWindow() {
     <div class="experience-item">
       <h3>Openwave Computing</h3>
       <p class="exp-role">Software Engineering Intern</p>
-      <p class="exp-date">Jun. 2021 — Aug. 2021</p>
+      <p class="exp-date">Jun. 2022 — Aug. 2022</p>
       <p class="exp-stack">React · Node.js · PostgreSQL · REST APIs · Figma · AWS</p>
       <ul>
         <li>Built RESTful APIs and designed the database schema for a field service platform</li>
